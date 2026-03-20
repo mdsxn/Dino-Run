@@ -5,3 +5,5 @@ dinogame
 
 
 *.o
+
+*.csv
