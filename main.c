@@ -16,19 +16,23 @@ typedef struct {
     Color color;
 } Player;
 
+// update la structura: size, speed si color
 typedef struct {
     Vector2 position;
     int type;
     bool active;
     Texture2D texture;
+    Vector2 size;  
+    float speed;   
+    Color color;   
 } Obstacle;
 
 typedef struct {
-  int score;
-  float globalSpeed;
-  BiomeType biome;
-  TimeOfDay timeOfDay;
-  bool isGameOver;
+    int score;
+    float globalSpeed;
+    BiomeType biome;
+    TimeOfDay timeOfDay;
+    bool isGameOver;
 } GameState;
 
 
@@ -42,16 +46,29 @@ int main(void)
     //Virtual canva
     RenderTexture2D target = LoadRenderTexture(GAME_WIDTH, GAME_HEIGHT);
 
-    // initalizam crocodilul
+    // initalizam balaurul
     Player dino = { 0 };
     dino.size = (Vector2){ 40, 40 };
     dino.color = GREEN;
-    dino.position = (Vector2){ 50, 200};
+    dino.position = (Vector2){ 50, 200 };
     dino.velocity = 0.0f;
     dino.gravity = 0.6f;
     dino.isJumping = true;
 
-    float growndLevel = GAME_HEIGHT - 20;
+    float groundLevel = GAME_HEIGHT - 20;
+
+    // Initalizam cactusul
+    Obstacle cactus = {0};
+    cactus.size = (Vector2){ 30, 50 }; 
+    cactus.color = DARKGREEN;
+    cactus.position = (Vector2){ GAME_WIDTH, groundLevel - cactus.size.y }; 
+    cactus.speed = 6.0f; 
+    cactus.active = true;
+
+    // Sistemul de progresie
+    int score = 0;
+    int framesCounter = 0; 
+    float globalSpeedMultiplier = 1.0f; 
 
     // game loop
     while(!WindowShouldClose())
@@ -60,36 +77,75 @@ int main(void)
         if(IsKeyPressed(KEY_F11))
         {
             ToggleFullscreen();
+        }
+
+        // --- UPDATE LOGIC (Matematica) ---
         
-    }
+        // 1. FIZICA DINOZAURULUI (Asta lipsea!)
+        dino.velocity += dino.gravity;
+        dino.position.y += dino.velocity;
 
-    // update dino
-    dino.velocity += dino.gravity;
-    dino.position.y += dino.velocity;   
+        if (dino.position.y + dino.size.y >= groundLevel) {
+            dino.position.y = groundLevel - dino.size.y; 
+            dino.velocity = 0.0f;                       
+            dino.isJumping = false;                      
+        }
 
-    if(dino.position.y + dino.size.y >= growndLevel)
-    {
-        dino.position.y = growndLevel - dino.size.y;
-        dino.isJumping = false;
-        dino.velocity = 0.0f;
+        if(IsKeyPressed(KEY_SPACE) && !dino.isJumping)
+        {
+            dino.velocity = -12.0f;
+            dino.isJumping = true;
+        }
 
-    }
-    // jump
-    if(IsKeyPressed(KEY_SPACE) && !dino.isJumping)
-    {
-        dino.velocity = -12.0f;
-        dino.isJumping = true;
-    }
+        // 2. SCOR SI VITEZA
+        framesCounter++;
+        if (framesCounter >= 10) {
+            score += 1;
+            framesCounter = 0;
+            globalSpeedMultiplier = 1.0f + (score / 100) * 0.1f; 
+        }
 
+        // 3. MISCAREA OBSTACOLELOR
+        if (cactus.active) {
+            cactus.position.x -= cactus.speed * globalSpeedMultiplier;
+        }
+
+        if (cactus.position.x + cactus.size.x < 0) {
+            cactus.position.x = GAME_WIDTH; 
+            cactus.size.y = (float)GetRandomValue(40, 70); 
+            cactus.position.y = groundLevel - cactus.size.y; 
+        }
+
+        // 4. COLIZIUNE (GAME OVER)
+        Rectangle dinoRec = { dino.position.x, dino.position.y, dino.size.x, dino.size.y };
+        Rectangle cactusRec = { cactus.position.x, cactus.position.y, cactus.size.x, cactus.size.y };
+
+        if (CheckCollisionRecs(dinoRec, cactusRec)) {
+            // Resetam jocul complet la lovire
+            dino.position.y = 200;
+            cactus.position.x = GAME_WIDTH;
+            score = 0;
+            globalSpeedMultiplier = 1.0f;
+        }
+
+
+        // --- DRAW LOGIC (Desenarea) ---
+        
         // draw to virtual canva
         BeginTextureMode(target);
-        ClearBackground(RAYWHITE);
+            ClearBackground(RAYWHITE);
 
-        DrawLine(0, growndLevel, GAME_WIDTH, growndLevel, BLACK );
-        DrawRectangleV(dino.position, dino.size, dino.color);
+            DrawLine(0, groundLevel, GAME_WIDTH, groundLevel, BLACK);
+            DrawRectangleV(dino.position, dino.size, dino.color);
+            
+            if (cactus.active) {
+                DrawRectangleV(cactus.position, cactus.size, cactus.color);
+            }
+            
+            DrawText(TextFormat("SCORE: %05i", score), GAME_WIDTH - 150, 20, 20, DARKGRAY);
+            DrawText(TextFormat("SPEED: %.2fx", globalSpeedMultiplier), GAME_WIDTH - 150, 50, 10, GRAY);
 
-        DrawText("Press SPACE to jump. Press F11 for fullscreen.", 10, 10, 20, DARKGRAY);
-        EndTextureMode();// end draw to virtual canva
+        EndTextureMode();
 
         // draw virtual canva to screen
         BeginDrawing();
@@ -98,46 +154,26 @@ int main(void)
             float scale = (float)GetScreenWidth() / GAME_WIDTH;
             float scaleY = (float)GetScreenHeight() / GAME_HEIGHT;
             
-            // maintain aspect ratio
             if (scaleY < scale) scale = scaleY;
-            // calculate source and destination rectangles for drawing the texture
+            
             Rectangle sourceRec = { 0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height };
-            // center the texture on the screen
+            
+            // AM REPARAT MATEMATICA AICI (Am pus * 0.5f)
             Rectangle destRec = { 
-            (GetScreenWidth() - GAME_WIDTH * scale) / 0.5f,
-            (GetScreenHeight() - GAME_HEIGHT * scale) / 0.5f,
-            GAME_WIDTH * scale,
-            GAME_HEIGHT * scale
+                (GetScreenWidth() - GAME_WIDTH * scale) * 0.5f,
+                (GetScreenHeight() - GAME_HEIGHT * scale) * 0.5f,
+                GAME_WIDTH * scale,
+                GAME_HEIGHT * scale
             };
-            // draw the scaled texture to the screen
+            
             DrawTexturePro(target.texture, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
         EndDrawing();
             
-        }
+    }
+
     // cleanup
     UnloadRenderTexture(target);
     CloseWindow();
 
     return 0;
-
-
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}
