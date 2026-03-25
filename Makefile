@@ -1,6 +1,6 @@
 # Makefile for building the dino game with raylib on linux
 COMPILER = gcc
-SOURCE = main.c scoreboard.c obstacle_system.c
+SOURCE = main.c leaderboard.c obstacle_system.c
 OUTPUT = dinogame
 
 # linking flags for raylib and other libraries

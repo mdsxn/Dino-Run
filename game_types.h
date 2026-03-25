@@ -9,7 +9,7 @@
 #define GAME_HEIGHT 450
 #define MAX_OBSTACLES 5
 
-typedef enum { SCREEN_MENU, SCREEN_PLAYING, SCREEN_GAME_OVER } GameScreen;
+typedef enum { SCREEN_MENU, SCREEN_PLAYING, SCREEN_GAME_OVER, SCREEN_LEADERBOARD } GameScreen;
 typedef enum { TYPE_CACTUS, TYPE_EAGLE } ObstacleType;
 typedef enum { DESERT, FOREST, SNOW } BiomeType;
 typedef enum { DAY, NIGHT } TimeOfDay;
