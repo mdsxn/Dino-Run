@@ -18,6 +18,9 @@ int main(void)
 
     RenderTexture2D target = LoadRenderTexture(GAME_WIDTH, GAME_HEIGHT);
 
+    // --- NOU: Incarcam imaginea dinozaurului ---
+    Texture2D texDino = LoadTexture("assets/dino.png");
+
     GameScreen currentScreen = SCREEN_MENU;
     bool exitGame = false; 
 
@@ -35,6 +38,8 @@ int main(void)
     dino.velocity = 0.0f;
     dino.gravity = 0.6f;
     dino.isJumping = true;
+    dino.size.x = (float)texDino.width;
+    dino.size.y = (float)texDino.height;
 
     float groundLevel = GAME_HEIGHT - 20;
 
@@ -201,8 +206,9 @@ int main(void)
 
             } 
             else if (currentScreen == SCREEN_PLAYING) {
+                
                 DrawLine(0, groundLevel, GAME_WIDTH, groundLevel, BLACK);
-                DrawRectangleV(dino.position, dino.size, dino.color);
+                DrawTextureV(texDino, dino.position, WHITE);
                 DrawObstacles(obstacles, MAX_OBSTACLES);
                 DrawText(TextFormat("SCORE: %05i", score), GAME_WIDTH - 150, 20, 20, DARKGRAY);
             }
@@ -246,7 +252,10 @@ int main(void)
         EndDrawing();
     }
 
+    
     UnloadRenderTexture(target);
+    UnloadTexture(texDino); 
+    
     CloseWindow();
     return 0;
 }
